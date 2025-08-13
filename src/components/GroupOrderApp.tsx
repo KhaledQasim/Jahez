@@ -29,7 +29,8 @@ export default function GroupOrderApp() {
 
   // Initialize socket connection
   useEffect(() => {
-    const newSocket = io('http://localhost:3001');
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://90b9214f821a.ngrok-free.app';
+    const newSocket = io(socketUrl);
     setSocket(newSocket);
 
     newSocket.on('room-updated', (data: { room: Room }) => {

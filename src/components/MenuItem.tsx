@@ -36,20 +36,37 @@ export default function MenuItem({ item, onAddToCart }: MenuItemProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="h-48 bg-gray-200 flex items-center justify-center">
-        <div className="text-gray-500 text-center">
-          <div className="text-4xl mb-2">🍕</div>
-          <div className="text-sm">{item.name}</div>
-        </div>
+      <div className="h-48 bg-gray-200 overflow-hidden">
+        <img
+          src={item.image}
+          alt={item.name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            // Fallback if image fails to load
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `
+                <div class="w-full h-full flex items-center justify-center">
+                  <div class="text-gray-500 text-center">
+                    <div class="text-4xl mb-2">🍕</div>
+                    <div class="text-sm">${item.name}</div>
+                  </div>
+                </div>
+              `;
+            }
+          }}
+        />
       </div>
       
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">{item.name}</h3>
-        <p className="text-gray-600 text-sm mb-3">{item.description}</p>
+        <h3 className="text-lg font-semibold text-black mb-2">{item.name}</h3>
+        <p className="text-gray-700 text-sm mb-3">{item.description}</p>
         
         {item.availableSizes && (
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-black mb-2">
               Size
             </label>
             <div className="flex space-x-2">
@@ -74,14 +91,14 @@ export default function MenuItem({ item, onAddToCart }: MenuItemProps) {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+              className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 font-bold"
             >
               -
             </button>
-            <span className="text-lg font-medium">{quantity}</span>
+            <span className="text-lg font-medium text-black">{quantity}</span>
             <button
               onClick={() => setQuantity(quantity + 1)}
-              className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+              className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 font-bold"
             >
               +
             </button>

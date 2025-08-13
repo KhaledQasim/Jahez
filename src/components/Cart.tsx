@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { CartItem } from '@/types';
 
 interface CartProps {
@@ -11,16 +12,35 @@ interface CartProps {
 }
 
 export default function Cart({ items, onUpdateQuantity, onRemoveItem, isOpen, onClose }: CartProps) {
+  const [expandedPeople, setExpandedPeople] = useState<string[]>([]);
+  
   const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const groupedItems = items.reduce((groups, item) => {
-    const key = `${item.menuItemId}-${item.size || 'default'}`;
-    if (!groups[key]) {
-      groups[key] = [];
+  // Group items by person
+  const itemsByPerson = items.reduce((groups, item) => {
+    const person = item.addedBy;
+    if (!groups[person]) {
+      groups[person] = [];
     }
-    groups[key].push(item);
+    groups[person].push(item);
     return groups;
   }, {} as Record<string, CartItem[]>);
+
+  const togglePersonExpanded = (person: string) => {
+    setExpandedPeople(prev => 
+      prev.includes(person) 
+        ? prev.filter(p => p !== person)
+        : [...prev, person]
+    );
+  };
+
+  const getPersonTotal = (personItems: CartItem[]) => {
+    return personItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  };
+
+  const getPersonItemCount = (personItems: CartItem[]) => {
+    return personItems.reduce((sum, item) => sum + item.quantity, 0);
+  };
 
   if (!isOpen) return null;
 
@@ -38,59 +58,92 @@ export default function Cart({ items, onUpdateQuantity, onRemoveItem, isOpen, on
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          {Object.entries(groupedItems).length === 0 ? (
+          {Object.entries(itemsByPerson).length === 0 ? (
             <div className="text-center text-gray-500 py-8">
               <div className="text-4xl mb-2">🛒</div>
               <p>Cart is empty</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {Object.entries(groupedItems).map(([key, groupItems]) => {
-                const firstItem = groupItems[0];
-                const totalQuantity = groupItems.reduce((sum, item) => sum + item.quantity, 0);
-                const totalPrice = groupItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              {Object.entries(itemsByPerson).map(([person, personItems]) => {
+                const isExpanded = expandedPeople.includes(person);
+                const personTotal = getPersonTotal(personItems);
+                const personItemCount = getPersonItemCount(personItems);
 
                 return (
-                  <div key={key} className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800">{firstItem.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          Added by: {groupItems.map(item => item.addedBy).join(', ')}
-                        </p>
+                  <div key={person} className="bg-white rounded-lg overflow-hidden border-2 border-red-200 shadow-md">
+                    {/* Person Header */}
+                    <button
+                      onClick={() => togglePersonExpanded(person)}
+                      className="w-full p-4 flex justify-between items-center hover:bg-red-50 transition-colors bg-red-50/30 border-b-2 border-red-200"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                          {person.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-semibold text-black">{person}</h3>
+                          <p className="text-sm text-gray-600">
+                            {personItemCount} items • ${personTotal.toFixed(2)}
+                          </p>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => groupItems.forEach(item => onRemoveItem(item.id))}
-                        className="text-red-500 hover:text-red-700 ml-2"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => {
-                            if (totalQuantity > 1) {
-                              onUpdateQuantity(firstItem.id, totalQuantity - 1);
-                            }
-                          }}
-                          className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 text-sm"
-                        >
-                          -
-                        </button>
-                        <span className="font-medium">{totalQuantity}</span>
-                        <button
-                          onClick={() => onUpdateQuantity(firstItem.id, totalQuantity + 1)}
-                          className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 text-sm"
-                        >
-                          +
-                        </button>
+                        <span className="text-lg font-bold text-red-600">
+                          ${personTotal.toFixed(2)}
+                        </span>
+                        <div className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                          ▼
+                        </div>
                       </div>
-                      <div className="text-lg font-bold text-red-600">
-                        ${totalPrice.toFixed(2)}
+                    </button>
+
+                    {/* Person's Items (Collapsible) */}
+                    {isExpanded && (
+                      <div className="border-t bg-white">
+                        {personItems.map((item) => (
+                          <div key={item.id} className="p-4 border-b last:border-b-0">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-black">{item.name}</h4>
+                                <p className="text-sm text-gray-600">${item.price.toFixed(2)} each</p>
+                              </div>
+                              <button
+                                onClick={() => onRemoveItem(item.id)}
+                                className="text-red-500 hover:text-red-700 ml-2"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => {
+                                    if (item.quantity > 1) {
+                                      onUpdateQuantity(item.id, item.quantity - 1);
+                                    }
+                                  }}
+                                  className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 text-sm font-bold"
+                                >
+                                  -
+                                </button>
+                                <span className="font-medium text-black">{item.quantity}</span>
+                                <button
+                                  onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                                  className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 text-sm font-bold"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <div className="text-lg font-bold text-red-600">
+                                ${(item.price * item.quantity).toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -98,7 +151,7 @@ export default function Cart({ items, onUpdateQuantity, onRemoveItem, isOpen, on
           )}
         </div>
 
-        {Object.entries(groupedItems).length > 0 && (
+        {Object.entries(itemsByPerson).length > 0 && (
           <div className="border-t p-4">
             <div className="flex justify-between items-center mb-4">
               <span className="text-lg font-semibold">Total:</span>

@@ -16,6 +16,7 @@ export default function GroupOrderModal({ isOpen, onClose, onJoinRoom, urlRoomId
   const [participantName, setParticipantName] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [hostName, setHostName] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -23,11 +24,12 @@ export default function GroupOrderModal({ isOpen, onClose, onJoinRoom, urlRoomId
         // Joining existing room via URL
         setRoomId(urlRoomId);
         setIsHost(false);
+        setShareUrl(''); // Clear share URL for joining
       } else if (!roomId) {
         // Creating new room
         const newRoomId = uuidv4();
         setRoomId(newRoomId);
-        setShareUrl(`${window.location.origin}?room=${newRoomId}`);
+        // Don't set shareUrl here, wait for user to create room
       }
     }
   }, [isOpen, roomId, urlRoomId]);
@@ -35,8 +37,9 @@ export default function GroupOrderModal({ isOpen, onClose, onJoinRoom, urlRoomId
   const handleCreateRoom = () => {
     if (participantName.trim()) {
       setIsHost(true);
+      setHostName(participantName); // Preserve the host's name
       setShareUrl(`${window.location.origin}?room=${roomId}`);
-      onJoinRoom(roomId, participantName);
+      // Don't auto-join, let the host decide when to join
     }
   };
 
@@ -55,6 +58,17 @@ export default function GroupOrderModal({ isOpen, onClose, onJoinRoom, urlRoomId
       console.error('Failed to copy: ', err);
     }
   };
+
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset states when modal closes
+      setRoomId('');
+      setParticipantName('');
+      setIsHost(false);
+      setShareUrl('');
+      setHostName('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -135,8 +149,11 @@ export default function GroupOrderModal({ isOpen, onClose, onJoinRoom, urlRoomId
         ) : (
           <div className="space-y-4">
             <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                Room created by: <span className="font-semibold text-black">{hostName || 'Host'}</span>
+              </p>
               <p className="text-sm text-gray-600 mb-4">
-                Share this link or QR code with others to join your group order
+                Share this link or QR code with others, then join yourself.
               </p>
               
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
@@ -148,7 +165,7 @@ export default function GroupOrderModal({ isOpen, onClose, onJoinRoom, urlRoomId
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mb-4">
                 <input
                   type="text"
                   value={shareUrl}
@@ -162,12 +179,19 @@ export default function GroupOrderModal({ isOpen, onClose, onJoinRoom, urlRoomId
                   Copy
                 </button>
               </div>
-            </div>
-
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Room ID: <span className="font-mono text-red-600">{roomId}</span>
-              </p>
+              
+              <div className="border-t pt-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Room ID: <span className="font-mono text-red-600">{roomId}</span>
+                </p>
+                
+                <button
+                  onClick={() => onJoinRoom(roomId, hostName || 'Host')}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 font-semibold"
+                >
+                  Join My Room as {hostName || 'Host'}
+                </button>
+              </div>
             </div>
           </div>
         )}

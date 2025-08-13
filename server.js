@@ -4,7 +4,7 @@ const http = require('http');
 const server = http.createServer();
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*", // Allow all origins for development
     methods: ["GET", "POST"]
   }
 });
